@@ -1,18 +1,19 @@
 const searchInput = document.querySelector('.search__input');
 const searchList = document.querySelector('.search__list');
 const addRepositories = document.querySelector('.repositories');
-
+const searchSpan = document.querySelector('.search__span');
 let mapRepos = new Map();
 let viewedRepos = [];
 
 async function serchRepository(query) {
-  return await fetch(`https://api.github.com/search/repositories?q=${query}`)
+  return await fetch(`https://api.github.com/search/repositories?q=${query}&per_page=5`)
     .then(res => {
       if (res.ok) {
         return res.json()
       }
       else {
-
+        searchSpan.textContent = 'Небольшая ошибка. Перезагрузите страницу'
+        searchList.innerHTML = ''
       }
     }).then(res => res.items)
 }
@@ -29,6 +30,7 @@ function debounce(callee, timeoutMs) {
 }
 
 function handleInput(e) {
+  searchSpan.textContent = "";
   viewedRepos = [];
   let { value } = e.target;
   value = value.trim();
@@ -49,8 +51,9 @@ function handleInput(e) {
         }
       });
 
+      repositoryNotFound() ;
       mapRepos.set(value, viewedRepos);
-      creatLi(viewedRepos);
+      creatRepository(viewedRepos);
     })
   }
 }
@@ -63,25 +66,26 @@ function addMap(value) {
       return element
     }
   });
-  creatLi(viewedRepos);
+  creatRepository(viewedRepos);
 }
 
-function creatLi(data) {
+function creatRepository(data) {
   searchList.innerHTML = ''
   let count = 0;
   data.forEach(item => {
-    if (count < 5) {
       searchList.insertAdjacentHTML('afterbegin', `<li id=${count}>${item.name}</li>`);
       count++;
-    }
   });
 }
 
-const debouncedDoSomething = debounce(handleInput, 250);
+function repositoryNotFound() {
+  if (viewedRepos.length === 0) {
+    searchSpan.textContent = 'Репозиторий по данному запросу не найден';
+  }
 
-searchInput.addEventListener('input', debouncedDoSomething);
+}
 
-searchList.addEventListener('click', function (e) {
+function CreatSelectedRep(e){
   let typ = e.target;
   searchList.removeChild(typ);
   let user = viewedRepos[typ.id];
@@ -93,7 +97,14 @@ searchList.addEventListener('click', function (e) {
   );
   searchInput.value = '';
   searchList.innerHTML = '';
-})
+}
+
+const debouncedDoSomething = debounce(handleInput, 250);
+
+searchInput.addEventListener('input', debouncedDoSomething);
+
+searchList.addEventListener('click', CreatSelectedRep.bind(this));
+searchList.removeEventListener('click', CreatSelectedRep)
 
 addRepositories.addEventListener('click', function (e) {
   if (e.target.className != 'remove') return;
